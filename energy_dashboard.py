@@ -94,7 +94,7 @@ if mese_selezionato != "Tutti":
 st.subheader("📊 Dati Filtrati")
 
 # Rimuovi le colonne 'lettura' e 'data' solo per la visualizzazione della tabella
-df_display = df_filtrato.drop(columns=['lettura', 'data'], errors='ignore')
+df_display = df_filtrato.drop(columns=['lettura', 'data', 'consumo_bolletta_kwh', 'totale_bolletta'], errors='ignore')
 
 st.dataframe(df_display.style.format(
         formatter={
