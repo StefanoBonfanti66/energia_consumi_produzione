@@ -104,6 +104,7 @@ st.dataframe(df_display.style.format(
             "consumo_kwh": "{:,.2f}",
             "ore_produzione": "{:,.2f}",
             "pezzi_prodotti": "{:,.0f}"
+            "costo_per_pezzo": lambda x: f'{x:,.4f} €' if pd.notna(x) else '-'
         }
     ), use_container_width=True)
 
