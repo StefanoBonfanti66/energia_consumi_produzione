@@ -92,7 +92,11 @@ if mese_selezionato != "Tutti":
 
 # --- Visualizzazione dei Dati Filtrati ---
 st.subheader("📊 Dati Filtrati")
-st.dataframe(df_filtrato.style.format(
+
+# Rimuovi le colonne 'lettura' e 'data' solo per la visualizzazione della tabella
+df_display = df_filtrato.drop(columns=['lettura', 'data'], errors='ignore')
+
+st.dataframe(df_display.style.format(
         formatter={
             "costo_macchina": lambda x: f'{x:,.2f} €' if pd.notna(x) else '-',
             "costo_energia_per_kwh": "{:,.4f} €",
