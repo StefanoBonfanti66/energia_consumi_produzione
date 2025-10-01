@@ -99,13 +99,13 @@ if mese_selezionato != "Tutti":
 # --- Visualizzazione dei Dati Filtrati ---
 st.subheader("📊 Dati Filtrati")
 st.dataframe(df_filtrato.style.format({
-    "costo_macchina": lambda x: f'{x:,.2f} €' if pd.notna(x) else '-',
-    "costo_energia_per_kwh": lambda x: f'{x:,.4f} €' if pd.notna(x) else '-',
-    "totale_bolletta": lambda x: f'{x:,.2f} €' if pd.notna(x) else '-',
-    "consumo_kwh": lambda x: f'{x:,.2f}' if pd.notna(x) else '-',
-    "ore_produzione": "{:,.2f}",
-    "pezzi_prodotti": "{:,.0f}"
-}), use_container_width=True)
+        "costo_macchina": "{:,.2f} €",
+        "costo_energia_per_kwh": "{:,.4f} €",
+        "totale_bolletta": "{:,.2f} €",
+        "consumo_kwh": "{:,.2f}",
+        "ore_produzione": "{:,.2f}",
+        "pezzi_prodotti": "{:,.0f}"
+    }, na_rep="-"), use_container_width=True)
 
 # --- Grafici Interattivi ---
 st.subheader("📈 Analisi dei Consumi")
