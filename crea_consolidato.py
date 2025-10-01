@@ -64,6 +64,7 @@ def crea_foglio_consolidato():
             'pezzi prodotti': 'pezzi_prodotti',
             'consumo': 'consumo_kwh',
             'costo energia': 'costo_energia_per_kwh',
+            'costo macchina': 'costo_macchina',
             'consumo da bolletta': 'consumo_bolletta_kwh',
             'totale bolletta': 'totale_bolletta'
         }
