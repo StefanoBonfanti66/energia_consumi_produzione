@@ -16,35 +16,29 @@ def load_and_clean_data():
     # Carica il foglio "Consolidato" del file Excel
     df = pd.read_excel("Dati consumi e costi energetici.xlsx", sheet_name="Consolidato")
 
-    # Rimuove le righe completamente vuote
+    # Rimuove le righe e colonne completamente vuote
     df = df.dropna(how='all').reset_index(drop=True)
-
-    # Rimuove le colonne completamente vuote o non nominate
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
-    # Identifica le 11 colonne effettive
-    df.columns = [
-        'anno', 'mese', 'macchina', 'ore_produzione', 'pezzi_prodotti',
-        'consumo_kwh', 'lettura', 'costo_energia_per_kwh', 'costo_macchina', 'consumo_bolletta_kwh', 'totale_bolletta'
+    # Pulisce e converte le colonne numeriche
+    numeric_cols = [
+        'anno', 'mese', 'ore_produzione', 'pezzi_prodotti', 'consumo_kwh', 
+        'lettura', 'costo_energia_per_kwh', 'costo_macchina', 'consumo_bolletta_kwh', 'totale_bolletta'
     ]
-
-    # Converte le colonne numeriche, gestendo gli errori
-    cols_to_clean_aggressively = ['consumo_kwh', 'costo_energia_per_kwh', 'consumo_bolletta_kwh', 'totale_bolletta', 'ore_produzione', 'pezzi_prodotti']
-    for col in cols_to_clean_aggressively:
+    for col in numeric_cols:
         if df[col].dtype == 'object':
-            df[col] = df[col].astype(str).str.replace(' €', '', regex=False).str.replace('-', '0', regex=False).str.replace(' ', '', regex=False).str.replace(',', '.', regex=False)
-        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            df[col] = df[col].astype(str).str.replace(' €', '', regex=False).str.replace(',', '.', regex=False)
+        df[col] = pd.to_numeric(df[col], errors='coerce')
 
-    # Converte 'costo_macchina' separatamente per preservare i valori nulli (NaN)
-    col = 'costo_macchina'
-    if df[col].dtype == 'object':
-        df[col] = df[col].astype(str).str.replace(' €', '', regex=False).str.replace(' ', '', regex=False).str.replace(',', '.', regex=False)
-    df[col] = pd.to_numeric(df[col], errors='coerce')
+    # --- CALCOLO FORZATO PER RISOLVERE PROBLEMI DI VISUALIZZAZIONE ---
+    # Questa operazione sovrascrive la colonna 'costo_macchina' letta dal file,
+    # garantendo che sia sempre un valore numerico calcolato.
+    df['costo_macchina'] = df['consumo_kwh'].fillna(0) * df['costo_energia_per_kwh'].fillna(0)
 
-    # Crea una colonna data per facilitare i filtri (se necessario in futuro)
+    # Crea una colonna data per facilitare i filtri
     df['data'] = pd.to_datetime(df['anno'].astype(str) + '-' + df['mese'].astype(str) + '-01', errors='coerce')
 
-    # Calcola metriche aggiuntive, gestendo la divisione per zero
+    # Ricalcola le metriche dipendenti con il nuovo costo_macchina
     df['consumo_per_pezzo'] = df['consumo_kwh'] / df['pezzi_prodotti'].replace(0, pd.NA)
     df['consumo_per_ora'] = df['consumo_kwh'] / df['ore_produzione'].replace(0, pd.NA)
     df['costo_per_pezzo'] = df['costo_macchina'] / df['pezzi_prodotti'].replace(0, pd.NA)
