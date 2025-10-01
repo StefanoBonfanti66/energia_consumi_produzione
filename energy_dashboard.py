@@ -98,13 +98,13 @@ df_display = df_filtrato.drop(columns=['lettura', 'data', 'consumo_bolletta_kwh'
 
 st.dataframe(df_display.style.format(
         formatter={
-            "costo_macchina": lambda x: f'{x:,.2f} €' if pd.notna(x) else '-',
-            "costo_energia_per_kwh": "{:,.4f} €",
-            "totale_bolletta": "{:,.2f} €",
-            "consumo_kwh": "{:,.2f}",
-            "ore_produzione": "{:,.2f}",
-            "pezzi_prodotti": "{:,.0f}"
-            "costo_per_pezzo": lambda x: f'{x:,.4f} €' if pd.notna(x) else '-'
+            "costo_macchina": lambda x: f'{x:.2f} €' if pd.notna(x) else '-',
+            "costo_energia_per_kwh": lambda x: f'{x:.4f} €' if pd.notna(x) else '-',
+            "totale_bolletta": lambda x: f'{x:.2f} €' if pd.notna(x) else '-',
+            "consumo_kwh": lambda x: f'{x:.2f}' if pd.notna(x) else '-',
+            "ore_produzione": lambda x: f'{x:.2f}' if pd.notna(x) else '-',
+            "pezzi_prodotti": lambda x: f'{x:.0f}' if pd.notna(x) else '-',
+            "costo_per_pezzo": lambda x: f'{x:.4f} €' if pd.notna(x) else '-'
         }
     ), use_container_width=True)
 
