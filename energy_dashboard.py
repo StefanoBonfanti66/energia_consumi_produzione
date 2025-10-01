@@ -29,11 +29,17 @@ def load_and_clean_data():
     ]
 
     # Converte le colonne numeriche, gestendo gli errori
-    for col in ['consumo_kwh', 'costo_energia_per_kwh', 'costo_macchina', 'consumo_bolletta_kwh', 'totale_bolletta', 'ore_produzione', 'pezzi_prodotti']:
-        # Rimuove spazi e simboli "€" prima della conversione
+    cols_to_clean_aggressively = ['consumo_kwh', 'costo_energia_per_kwh', 'consumo_bolletta_kwh', 'totale_bolletta', 'ore_produzione', 'pezzi_prodotti']
+    for col in cols_to_clean_aggressively:
         if df[col].dtype == 'object':
             df[col] = df[col].astype(str).str.replace(' €', '', regex=False).str.replace('-', '0', regex=False).str.replace(' ', '', regex=False).str.replace(',', '.', regex=False)
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    # Converte 'costo_macchina' separatamente per preservare i valori nulli (NaN)
+    col = 'costo_macchina'
+    if df[col].dtype == 'object':
+        df[col] = df[col].astype(str).str.replace(' €', '', regex=False).str.replace(' ', '', regex=False).str.replace(',', '.', regex=False)
+    df[col] = pd.to_numeric(df[col], errors='coerce')
 
     # Crea una colonna data per facilitare i filtri (se necessario in futuro)
     df['data'] = pd.to_datetime(df['anno'].astype(str) + '-' + df['mese'].astype(str) + '-01', errors='coerce')
@@ -92,7 +98,14 @@ if mese_selezionato != "Tutti":
 
 # --- Visualizzazione dei Dati Filtrati ---
 st.subheader("📊 Dati Filtrati")
-st.dataframe(df_filtrato, use_container_width=True)
+st.dataframe(df_filtrato.style.format({
+    "costo_macchina": lambda x: f'{x:,.2f} €' if pd.notna(x) else '-',
+    "costo_energia_per_kwh": lambda x: f'{x:,.4f} €' if pd.notna(x) else '-',
+    "totale_bolletta": lambda x: f'{x:,.2f} €' if pd.notna(x) else '-',
+    "consumo_kwh": lambda x: f'{x:,.2f}' if pd.notna(x) else '-',
+    "ore_produzione": "{:,.2f}",
+    "pezzi_prodotti": "{:,.0f}"
+}), use_container_width=True)
 
 # --- Grafici Interattivi ---
 st.subheader("📈 Analisi dei Consumi")
