@@ -7,8 +7,8 @@ Il sistema è composto da tre script principali che coprono l'intero flusso di l
 ## Struttura dei File
 
 - **`Dati consumi e costi energetici.xlsx`**: Il file Excel principale. Contiene i fogli di lavoro individuali per ogni macchina (es. `F01`, `ASS1`, ecc.) dove vengono inseriti i dati grezzi.
-- **`crea_consolidato.py`**: Il primo script da eseguire. Legge tutti i fogli macchina dal file Excel principale e crea (o aggiorna) un foglio riepilogativo chiamato `Consolidato`.
-- **`energy_dashboard.py`**: Il secondo script. Avvia una dashboard web interattiva (basata su Streamlit) che legge i dati dal foglio `Consolidato` per un'analisi visuale.
+- **`crea_consolidato.py`**: Il primo script da eseguire. Legge tutti i fogli macchina dal file Excel principale e crea (o aggiorna) un foglio riepilogativo chiamato `Consolidato`. **Nota:** Fogli specifici (es. `ICOPOWER`) possono essere esclusi dall'elaborazione se non contengono dati rilevanti o hanno una struttura diversa.
+- **`energy_dashboard.py`**: Il secondo script. Avvia una dashboard web interattiva (basata su Streamlit) che legge i dati dal foglio `Consolidato` per un'analisi visuale. **Nota:** Alcune colonne (es. `lettura`, `data`, `consumo_bolletta_kwh`, `totale_bolletta`) sono nascoste dalla tabella principale per maggiore chiarezza. La metrica `costo_macchina` viene ricalcolata all'interno dello script per garantire la corretta visualizzazione.
 - **`unisci_dati.py`**: Uno script indipendente per generare report statici in formato Excel, unendo dati da file separati.
 - **`prod_quantita.xlsx` / `prod_consumo_macchine.xlsx`**: File di input richiesti solo per lo script `unisci_dati.py`.
 - **`report.xlsx` / `report_anomalie.xlsx`**: File di output generati da `unisci_dati.py`.
@@ -29,7 +29,7 @@ Apri un terminale nella directory del progetto ed esegui lo script di consolidam
 python crea_consolidato.py
 ```
 
-Questo script leggerà tutti i fogli delle macchine e aggiornerà il foglio `Consolidato` con i dati più recenti, rendendoli pronti per l'analisi.
+Questo script leggerà tutti i fogli delle macchine (escludendo quelli configurati per essere ignorati) e aggiornerà il foglio `Consolidato` con i dati più recenti, rendendoli pronti per l'analisi.
 
 ### Passo 3: Avviare la Dashboard Interattiva
 
@@ -41,9 +41,16 @@ streamlit run energy_dashboard.py
 
 Si aprirà una pagina web nel tuo browser che ti permetterà di filtrare i dati per macchina, anno e mese e di visualizzare grafici interattivi su consumi e costi.
 
+## Accesso alla Dashboard Online
+
+L'applicazione è deployata su Streamlit Cloud e accessibile al seguente URL:
+[https://stefanobonfanti66-energia-consumi-produ-energy-dashboard-t36pun.streamlit.app/](https://stefanobonfanti66-energia-consumi-produ-energy-dashboard-t36pun.streamlit.app/)
+
+Per un URL più semplice, puoi modificare il sottodominio dalle impostazioni dell'app sulla tua dashboard di Streamlit Cloud.
+
 ## Flusso di Lavoro Alternativo (Report Statici)
 
-Se hai bisogno di generare report Excel statici (come descritto nella versione precedente di questo README), puoi usare lo script `unisci_dati.py`.
+Se hai bisogno di generare report Excel statici, puoi usare lo script `unisci_dati.py`.
 
 1.  Assicurati che i file `prod_quantita.xlsx` e `prod_consumo_macchine.xlsx` siano aggiornati.
 2.  Esegui lo script:
