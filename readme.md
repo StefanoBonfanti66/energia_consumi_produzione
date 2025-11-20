@@ -29,7 +29,7 @@ Apri un terminale nella directory del progetto ed esegui lo script di consolidam
 python crea_consolidato.py
 ```
 
-Questo script leggerà tutti i fogli delle macchine (escludendo quelli configurati per essere ignorati) e aggiornerà il foglio `Consolidato` con i dati più recenti, rendendoli pronti per l'analisi.
+Questo script leggerà tutti i fogli delle macchine (escludendo quelli configurati per essere ignorati) e aggiornerà il foglio `Consolidato` con i dati più recenti, rendendoli pronti per l'analisi. L'operazione è stata eseguita per aggiornare i dati di Ottobre.
 
 ### Passo 3: Avviare la Dashboard Interattiva
 
@@ -68,4 +68,4 @@ pip install pandas openpyxl streamlit plotly
 ```
 
 ---
-*Documentazione aggiornata il 01/10/2025*
+*Documentazione aggiornata il 20/11/2025*
