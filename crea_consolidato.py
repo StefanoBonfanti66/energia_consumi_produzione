@@ -3,6 +3,39 @@ import pandas as pd
 import openpyxl
 import os
 import yaml
+import logging
+from typing import Optional
+from pydantic import BaseModel, ValidationError, field_validator
+
+# --- Configurazione del Logging ---
+logging.basicConfig(
+    filename='errori_validazione.log',
+    level=logging.ERROR,
+    format='%(asctime)s - FOGLIO: %(sheet_name)s - RIGA: %(row_num)s - ERRORE: %(message)s',
+    filemode='w'
+)
+logger = logging.getLogger()
+
+# --- Modello di Dati con Pydantic ---
+class DatiMacchinaRow(BaseModel):
+    """Definisce la struttura e i tipi di una riga di dati valida."""
+    macchina_o_impianto: str
+    anno: int
+    mese: int
+    ore_produzione_macchina: Optional[float] = None
+    pezzi_prodotti: Optional[float] = None
+    consumo: Optional[float] = None
+    lettura: Optional[float] = None
+    costo_energia: Optional[float] = None
+    costo_macchina: Optional[float] = None
+    consumo_da_bolletta: Optional[float] = None
+    totale_bolletta: Optional[float] = None
+
+    @field_validator('*', mode='before')
+    def empty_str_to_none(cls, v):
+        if isinstance(v, str) and v.strip() in ('', '-'):
+            return None
+        return v
 
 def load_config(config_path='config.yaml'):
     """Carica la configurazione dal file YAML."""
@@ -16,8 +49,7 @@ def load_config(config_path='config.yaml'):
 
 def crea_foglio_consolidato():
     """
-    Legge i dati dai fogli delle singole macchine, li consolida e li salva 
-    nel foglio 'Consolidato' utilizzando i parametri da 'config.yaml'.
+    Legge, valida e consolida i dati, salvando gli errori in un file di log.
     """
     try:
         config = load_config()
@@ -25,7 +57,6 @@ def crea_foglio_consolidato():
         sheets_to_exclude = set(config['fogli_da_escludere'])
         column_mapping = config['mappatura_colonne']
         final_columns = config['colonne_finali']
-
     except (FileNotFoundError, ValueError, KeyError) as e:
         print(f"Errore di configurazione: {e}")
         return
@@ -35,74 +66,67 @@ def crea_foglio_consolidato():
         return
 
     try:
-        # Carica il file Excel per ispezionare i fogli
         xls = pd.ExcelFile(file_path, engine='openpyxl')
-        sheet_names = xls.sheet_names
+        sheet_names = [s for s in xls.sheet_names if s not in sheets_to_exclude]
+        print(f"Fogli trovati da elaborare: {sheet_names}")
 
-        # Filtra i fogli da elaborare
-        sheets_to_process = [s for s in sheet_names if s not in sheets_to_exclude]
-        print(f"Fogli trovati da elaborare: {sheets_to_process}")
-
-        if not sheets_to_process:
+        if not sheet_names:
             print("Nessun foglio di macchina trovato da elaborare.")
             return
 
-        # Lista per contenere i DataFrame di ogni foglio
-        all_data = []
+        valid_rows = []
+        error_count = 0
 
-        # Itera su ogni foglio e leggi i dati
-        for sheet_name in sheets_to_process:
-            print(f"Leggo il foglio: {sheet_name}...")
-            try:
-                df = pd.read_excel(xls, sheet_name=sheet_name, header=0)
-                # Assicura che la colonna 'macchina o impianto' esista prima di procedere
-                if 'macchina o impianto' in df.columns:
-                    # Rimuovi le righe dove la colonna 'macchina o impianto' è vuota
-                    df.dropna(subset=['macchina o impianto'], inplace=True)
-                    if not df.empty:
-                        all_data.append(df)
-                else:
-                    print(f"Attenzione: La colonna 'macchina o impianto' non è stata trovata nel foglio '{sheet_name}'.")
-            except Exception as e:
-                print(f"Errore durante la lettura del foglio '{sheet_name}': {e}")
+        for sheet_name in sheet_names:
+            print(f"Leggo e valido il foglio: {sheet_name}...")
+            df = pd.read_excel(xls, sheet_name=sheet_name, header=0)
+            
+            # Standardizza i nomi delle colonne per la validazione
+            df.columns = df.columns.str.strip().str.replace(' ', '_')
 
-        if not all_data:
+            for index, row in df.iterrows():
+                if pd.isna(row.get('macchina_o_impianto')) or not str(row.get('macchina_o_impianto')).strip():
+                    continue
+                
+                try:
+                    validated_row = DatiMacchinaRow(**row.to_dict())
+                    valid_rows.append(validated_row.model_dump())
+                except ValidationError as e:
+                    error_details = e.errors()[0]
+                    err_msg = f"{error_details['msg']} (colonna: {error_details['loc'][0]})"
+                    logger.error(err_msg, extra={'sheet_name': sheet_name, 'row_num': index + 2})
+                    error_count += 1
+        
+        if error_count > 0:
+            print(f"ATTENZIONE: Sono stati trovati {error_count} errori di validazione. Controlla il file 'errori_validazione.log'.")
+
+        if not valid_rows:
             print("Nessun dato valido trovato nei fogli delle macchine.")
             return
 
-        # Concatena tutti i DataFrame in uno solo
-        consolidated_df = pd.concat(all_data, ignore_index=True)
-        print("Dati da tutti i fogli uniti con successo.")
+        consolidated_df = pd.DataFrame(valid_rows)
+        print("Dati validi uniti con successo.")
 
-        # Pulisci i nomi delle colonne
-        consolidated_df.columns = consolidated_df.columns.str.strip()
-
-        # Rinomina le colonne
-        consolidated_df.rename(columns=column_mapping, inplace=True)
+        # Rinomina le colonne per il formato finale
+        # Le colonne nel df sono es: 'macchina_o_impianto', nella config la key è 'macchina o impianto'
+        inverted_mapping = {k.replace(' ', '_'): v for k, v in column_mapping.items()}
+        consolidated_df.rename(columns=inverted_mapping, inplace=True)
         
-        # Assicurati che tutte le colonne finali esistano
         for col in final_columns:
             if col not in consolidated_df.columns:
                 consolidated_df[col] = None
         
-        # Seleziona e ordina le colonne finali
         consolidated_df = consolidated_df[final_columns]
 
-        # Salva il DataFrame consolidato nel foglio 'Consolidato'
         print(f"Salvataggio del foglio 'Consolidato' nel file '{file_path}'...")
         try:
             from openpyxl.utils.dataframe import dataframe_to_rows
-
             book = openpyxl.load_workbook(file_path)
-
             if 'Consolidato' in book.sheetnames:
                 book.remove(book['Consolidato'])
-
             new_sheet = book.create_sheet('Consolidato')
-
             for r in dataframe_to_rows(consolidated_df, index=False, header=True):
                 new_sheet.append(r)
-
             book.save(file_path)
             print("Operazione completata con successo!")
 
