@@ -2,14 +2,34 @@
 import pandas as pd
 import openpyxl
 import os
+import yaml
+
+def load_config(config_path='config.yaml'):
+    """Carica la configurazione dal file YAML."""
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"File di configurazione non trovato: {config_path}")
+    with open(config_path, 'r') as f:
+        try:
+            return yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Errore nel parsing del file di configurazione YAML: {e}")
 
 def crea_foglio_consolidato():
     """
-    Legge i dati dai fogli delle singole macchine in 'Dati consumi e costi energetici.xlsx',
-    li consolida e li salva nel foglio 'Consolidato' dello stesso file.
+    Legge i dati dai fogli delle singole macchine, li consolida e li salva 
+    nel foglio 'Consolidato' utilizzando i parametri da 'config.yaml'.
     """
-    file_path = "Dati consumi e costi energetici.xlsx"
-    
+    try:
+        config = load_config()
+        file_path = config['file_excel']
+        sheets_to_exclude = set(config['fogli_da_escludere'])
+        column_mapping = config['mappatura_colonne']
+        final_columns = config['colonne_finali']
+
+    except (FileNotFoundError, ValueError, KeyError) as e:
+        print(f"Errore di configurazione: {e}")
+        return
+
     if not os.path.exists(file_path):
         print(f"Errore: Il file '{file_path}' non è stato trovato.")
         return
@@ -19,8 +39,8 @@ def crea_foglio_consolidato():
         xls = pd.ExcelFile(file_path, engine='openpyxl')
         sheet_names = xls.sheet_names
 
-        # Filtra i fogli da elaborare (escludi quelli di sistema/riepilogo)
-        sheets_to_process = [s for s in sheet_names if s not in ['Consolidato', 'Tabelle', 'ICOPOWER']]
+        # Filtra i fogli da elaborare
+        sheets_to_process = [s for s in sheet_names if s not in sheets_to_exclude]
         print(f"Fogli trovati da elaborare: {sheets_to_process}")
 
         if not sheets_to_process:
@@ -54,30 +74,13 @@ def crea_foglio_consolidato():
         consolidated_df = pd.concat(all_data, ignore_index=True)
         print("Dati da tutti i fogli uniti con successo.")
 
-        # Pulisci i nomi delle colonne (rimuovi spazi bianchi iniziali/finali)
+        # Pulisci i nomi delle colonne
         consolidated_df.columns = consolidated_df.columns.str.strip()
 
-        # Rinomina le colonne per coerenza con la dashboard
-        column_mapping = {
-            'macchina o impianto': 'macchina',
-            'ore produzione macchina': 'ore_produzione',
-            'pezzi prodotti': 'pezzi_prodotti',
-            'consumo': 'consumo_kwh',
-            'costo energia': 'costo_energia_per_kwh',
-            'costo macchina': 'costo_macchina',
-            'consumo da bolletta': 'consumo_bolletta_kwh',
-            'totale bolletta': 'totale_bolletta'
-        }
+        # Rinomina le colonne
         consolidated_df.rename(columns=column_mapping, inplace=True)
         
-        # Assicurati che tutte le colonne mappate esistano
-        final_columns = [
-            'anno', 'mese', 'macchina', 'ore_produzione', 'pezzi_prodotti',
-            'consumo_kwh', 'lettura', 'costo_energia_per_kwh', 'costo_macchina',
-            'consumo_bolletta_kwh', 'totale_bolletta'
-        ]
-        
-        # Aggiungi colonne mancanti con None se non esistono
+        # Assicurati che tutte le colonne finali esistano
         for col in final_columns:
             if col not in consolidated_df.columns:
                 consolidated_df[col] = None
@@ -92,15 +95,11 @@ def crea_foglio_consolidato():
 
             book = openpyxl.load_workbook(file_path)
 
-            # Rimuovi il vecchio foglio 'Consolidato' se esiste
             if 'Consolidato' in book.sheetnames:
-                old_sheet = book['Consolidato']
-                book.remove(old_sheet)
+                book.remove(book['Consolidato'])
 
-            # Crea un nuovo foglio 'Consolidato'
             new_sheet = book.create_sheet('Consolidato')
 
-            # Scrivi il DataFrame nel nuovo foglio, inclusa l'intestazione
             for r in dataframe_to_rows(consolidated_df, index=False, header=True):
                 new_sheet.append(r)
 
@@ -117,8 +116,6 @@ def crea_foglio_consolidato():
             except Exception as e2:
                 print(f"Anche il salvataggio alternativo è fallito: {e2}")
 
-    except FileNotFoundError:
-        print(f"Errore critico: Il file '{file_path}' non è stato trovato.")
     except Exception as e:
         print(f"Si è verificato un errore imprevisto: {e}")
 

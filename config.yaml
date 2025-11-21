@@ -1,0 +1,35 @@
+# File di configurazione per gli script di analisi energetica
+
+# Percorso del file Excel principale
+file_excel: "Dati consumi e costi energetici.xlsx"
+
+# Nomi dei fogli di lavoro da escludere durante il consolidamento
+fogli_da_escludere:
+  - Consolidato
+  - Tabelle
+  - ICOPOWER
+
+# Mappatura per rinominare le colonne dal formato grezzo al formato consolidato
+mappatura_colonne:
+  macchina o impianto: macchina
+  ore produzione macchina: ore_produzione
+  pezzi prodotti: pezzi_prodotti
+  consumo: consumo_kwh
+  costo energia: costo_energia_per_kwh
+  costo macchina: costo_macchina
+  consumo da bolletta: consumo_bolletta_kwh
+  totale bolletta: totale_bolletta
+
+# Elenco delle colonne finali da includere nel foglio Consolidato
+colonne_finali:
+  - anno
+  - mese
+  - macchina
+  - ore_produzione
+  - pezzi_prodotti
+  - consumo_kwh
+  - lettura
+  - costo_energia_per_kwh
+  - costo_macchina
+  - consumo_bolletta_kwh
+  - totale_bolletta
